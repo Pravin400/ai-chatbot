@@ -8,4 +8,6 @@ const userSchema = mongoose.Schema({
   //   history : [{type : Date, qustion : String}]
 });
 
-export const User = mongoose.model("User", userSchema);
+const User = mongoose.model("User", userSchema);
+
+module.exports = User;
