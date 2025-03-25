@@ -5,7 +5,7 @@ const userSchema = Schema({
   email: { type: String, required: true, unique: true },
   password: String,
   createdAt: { type: Date, default: Date.now },
-  //   history : [{type : Date, qustion : String}]
+  history: [{ type: Date, qustion: String }],
 });
 
 const User = model("User", userSchema);

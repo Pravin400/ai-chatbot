@@ -6,13 +6,14 @@ import { connect } from "mongoose";
 import User from "./schemas.js";
 import model from "./utils.js";
 import dotenv from "dotenv";
+import authMiddleware from "./middlewares/auth-middleware.js";
 
 const app = express();
 app.use(json());
 app.use(cors());
 dotenv.config();
 
-const JWT_SECRET = process.env.JWT_SECRET;
+const JWT_SECRET = process.env.JWT_SECRET || "JSONTW3BT0k3nS3KR3t";
 
 app.post("/signup", async (req, res) => {
   const { userName, password, email } = req.body;
@@ -71,7 +72,7 @@ app.get("/login", async (req, res) => {
     // Generate JWT Token
     const token = jwt.sign(
       { userId: user._id, email: user.email },
-      process.env.JWT_SECRET,
+      JWT_SECRET,
       { expiresIn: "1h" } // Token expires in 1 hour
     );
 
@@ -84,28 +85,37 @@ app.get("/login", async (req, res) => {
 
 // cors
 
-app.get("/", (req, res) => {
-  res.send("Hello!!!");
-});
-
-app.get("/ask-quetion", async (req, res) => {
+app.get("/ask-quetion", authMiddleware, async (req, res) => {
   // id -->
+
+  console.log(req.user);
 
   const question = req.body.question;
 
   //   id bhej raha hai kya
   // id ke saath db koi user exists karta hai kya?? --> yes, uno
 
-  const chat = model.startChat({
-    history: [],
-  });
+  // ====================== this ==============================
 
-  const result = await chat.sendMessage(question);
-  const response = result.response;
-  const text = response.text();
+  // const chat = model.startChat({
+  //   history: [],
+  // });
+
+  // const result = await chat.sendMessage(question);
+  // const response = result.response;
+
+  // ======================== or ===============================
+
+  const result = await model.generateContent(question);
+
+  const text = result.response.text();
 
   /** Send the response returned by the model as the API's response. */
   res.send({ text: text });
+});
+
+app.get("/", (req, res) => {
+  res.send("Hello!!!");
 });
 
 app.listen(3000, () => {
