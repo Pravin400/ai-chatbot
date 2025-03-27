@@ -5,7 +5,7 @@ import { Link } from "react-router-dom";
 
 const Header = () => {
   return (
-    <header className="md:px-10 px-8 py-4 backdrop-blur-2xl flex justify-between text-neutral-300 fixed w-full">
+    <header className="md:px-10 px-8 py-4 backdrop-blur-xs min-h-[12vh] flex justify-between items-center text-neutral-300 fixed w-full shadow-sm">
       <Link to="/" className="hover:text-neutral-50">
         <FontAwesomeIcon icon={faStaylinked} />
       </Link>
