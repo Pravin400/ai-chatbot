@@ -1,127 +1,119 @@
 import express, { json } from "express";
 import cors from "cors";
-import jwt from "jsonwebtoken";
-import bcrypt from "bcryptjs";
 import { connect } from "mongoose";
-import User from "./schemas.js";
+import Chat from "./schemas.js";
 import model from "./utils.js";
 import dotenv from "dotenv";
-import authMiddleware from "./middlewares/auth-middleware.js";
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+
+// Configure dotenv
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+dotenv.config({ path: join(__dirname, '.env') });
 
 const app = express();
 app.use(json());
 app.use(cors());
-dotenv.config();
 
-const JWT_SECRET = process.env.JWT_SECRET || "JSONTW3BT0k3nS3KR3t";
+// MongoDB Connection
+connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/ai-chatbot')
+  .then(() => console.log('Connected to MongoDB'))
+  .catch(err => console.error('MongoDB connection error:', err));
 
-app.post("/signup", async (req, res) => {
-  const { userName, password, email } = req.body;
-
-  if (!userName || !password || !email) {
-    return res.status(400).json({ msg: "Required all the fields" });
-  }
-
-  // check if that alredy exists in db or not
-
-  const existingUser = await User.findOne({ email });
-
-  if (existingUser) {
-    return res.status(400).json({ message: "User already exists" });
-  }
-
-  // Hash the password
-
-  const salt = await bcrypt.genSalt(10);
-  const hashedPassword = await bcrypt.hash(password, salt);
-
-  const user = new User({ userName, email, password: hashedPassword });
-
-  await user.save();
-
-  // generating token
-
-  const token = jwt.sign({ userId: user._id }, JWT_SECRET, { expiresIn: "1h" });
-
-  res.status(201).json({ msg: "Signup successfull", token });
-});
-
-// login
-app.get("/login", async (req, res) => {
+// Get all chat sessions
+app.get('/api/chat/sessions', async (req, res) => {
   try {
-    const { email, password } = req.body;
-
-    // check if user exists
-
-    const user = await User.findOne({ email });
-
-    console.log(user);
-
-    if (!user) {
-      return res.status(400).json({ message: "Invalid credentials" });
-    }
-
-    // Let's compare passwords here
-
-    const isMatch = await bcrypt.compare(password, user.password);
-
-    if (!isMatch) {
-      return res.status(400).json({ message: "Invalid credentials" });
-    }
-
-    // Generate JWT Token
-    const token = jwt.sign(
-      { userId: user._id, email: user.email },
-      JWT_SECRET,
-      { expiresIn: "1h" } // Token expires in 1 hour
-    );
-
-    res.json({ message: "Login successful", token });
+    const sessions = await Chat.find({})
+      .sort({ createdAt: -1 })
+      .select('sessionId chats createdAt')
+      .lean();
+    
+    res.json({ sessions });
   } catch (error) {
-    console.log("Error in login route", error);
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({ message: 'Error fetching chat sessions', error: error.message });
   }
 });
 
-// cors
-
-app.get("/ask-quetion", authMiddleware, async (req, res) => {
-  // id -->
-
-  console.log(req.user);
-
-  const question = req.body.question;
-
-  //   id bhej raha hai kya
-  // id ke saath db koi user exists karta hai kya?? --> yes, uno
-
-  // ====================== this ==============================
-
-  // const chat = model.startChat({
-  //   history: [],
-  // });
-
-  // const result = await chat.sendMessage(question);
-  // const response = result.response;
-
-  // ======================== or ===============================
-
-  const result = await model.generateContent(question);
-
-  const text = result.response.text();
-
-  /** Send the response returned by the model as the API's response. */
-  res.send({ text: text });
+// Start new chat session
+app.post('/api/chat/start', async (req, res) => {
+  try {
+    const sessionId = Date.now().toString(); // Simple session ID generation
+    const chat = new Chat({ sessionId });
+    await chat.save();
+    res.json({ sessionId, message: 'New chat session started' });
+  } catch (error) {
+    res.status(500).json({ message: 'Error starting chat session', error: error.message });
+  }
 });
 
-app.get("/", (req, res) => {
-  res.send("Hello!!!");
+// Send message and get response
+app.post('/api/chat/message', async (req, res) => {
+  try {
+    const { sessionId, question } = req.body;
+    
+    if (!sessionId || !question) {
+      return res.status(400).json({ message: 'Session ID and question are required' });
+    }
+
+    // Get AI response
+    const result = await model.generateContent(question);
+    const answer = result.response.text();
+
+    // Save to chat history
+    const chat = await Chat.findOne({ sessionId });
+    if (!chat) {
+      return res.status(404).json({ message: 'Chat session not found' });
+    }
+
+    chat.chats.push({ question, answer });
+    await chat.save();
+
+    res.json({ answer, chatHistory: chat.chats });
+  } catch (error) {
+    res.status(500).json({ message: 'Error processing chat', error: error.message });
+  }
 });
 
-app.listen(3000, () => {
-  console.log(`Example app listening on port 3000`);
+// Get chat history
+app.get('/api/chat/history/:sessionId', async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+    const chat = await Chat.findOne({ sessionId });
+    
+    if (!chat) {
+      return res.status(404).json({ message: 'Chat session not found' });
+    }
+
+    res.json({ chatHistory: chat.chats });
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching chat history', error: error.message });
+  }
 });
 
-connect(
-  "mongodb+srv://salmanshaikh:zvmFMdAh3iTZ0MDi@cluster0.bvh6a.mongodb.net"
-);
+// Delete chat session
+app.delete('/api/chat/:sessionId', async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+    console.log('Attempting to delete session:', sessionId);
+    
+    const result = await Chat.deleteOne({ sessionId });
+    console.log('Delete result:', result);
+    
+    if (result.deletedCount === 0) {
+      console.log('No document found to delete');
+      return res.status(404).json({ message: 'Chat session not found' });
+    }
+
+    console.log('Successfully deleted session');
+    res.json({ message: 'Chat session deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting chat session:', error);
+    res.status(500).json({ message: 'Error deleting chat session', error: error.message });
+  }
+});
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
