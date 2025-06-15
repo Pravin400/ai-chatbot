@@ -17,9 +17,20 @@ app.use(json());
 app.use(cors());
 
 // MongoDB Connection
-connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/ai-chatbot')
-  .then(() => console.log('Connected to MongoDB'))
-  .catch(err => console.error('MongoDB connection error:', err));
+if (!process.env.MONGODB_URI) {
+  console.error('⚠️ Error: MONGODB_URI is not set in .env file');
+  console.error('Please create a .env file with your MongoDB connection string');
+  process.exit(1);
+}
+
+connect(process.env.MONGODB_URI)
+  .then(() => {
+    console.log('✅ Successfully connected to MongoDB');
+  })
+  .catch(err => {
+    console.error('❌ MongoDB connection error:', err);
+    process.exit(1);
+  });
 
 // Get all chat sessions
 app.get('/api/chat/sessions', async (req, res) => {
