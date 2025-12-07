@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPaperPlane, faTrash, faPlus, faRobot, faUser, faClock, faSpinner, faMoon, faSun } from '@fortawesome/free-solid-svg-icons';
+import FormattedMessage from './FormattedMessage';
 
 const Chat = () => {
   const [message, setMessage] = useState('');
@@ -11,6 +12,8 @@ const Chat = () => {
   const [error, setError] = useState(null);
   const [darkMode, setDarkMode] = useState(true);
   const [typing, setTyping] = useState(false);
+  const [streamingText, setStreamingText] = useState('');
+  const [isStreaming, setIsStreaming] = useState(false);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
 
@@ -134,8 +137,17 @@ const Chat = () => {
     e.preventDefault();
     if (!message.trim()) return;
 
+    const userMessage = message;
+    setMessage('');
+    
+    // Show user message immediately
+    setChatHistory(prev => [...prev, { question: userMessage, answer: '' }]);
+    
     setIsLoading(true);
     setTyping(true);
+    setIsStreaming(true);
+    setStreamingText('');
+    
     try {
       setError(null);
       const response = await fetch('http://localhost:3000/api/chat/message', {
@@ -145,15 +157,20 @@ const Chat = () => {
         },
         body: JSON.stringify({
           sessionId,
-          question: message,
+          question: userMessage,
         }),
       });
       if (!response.ok) {
         throw new Error('Failed to send message');
       }
       const data = await response.json();
+      
+      // Simulate streaming response
+      const fullResponse = data.answer;
+      await simulateStreaming(fullResponse);
+      
+      // Update chat history with complete response
       setChatHistory(data.chatHistory);
-      setMessage('');
       await fetchAllChatSessions();
     } catch (error) {
       console.error('Error sending message:', error);
@@ -161,8 +178,31 @@ const Chat = () => {
     } finally {
       setIsLoading(false);
       setTyping(false);
-      // Focus input after message is sent
+      setIsStreaming(false);
+      setStreamingText('');
       inputRef.current?.focus();
+    }
+  };
+
+  const simulateStreaming = async (text) => {
+    let displayText = '';
+    // Split by lines and display line by line
+    const lines = text.split('\n');
+    
+    for (let lineIdx = 0; lineIdx < lines.length; lineIdx++) {
+      const line = lines[lineIdx];
+      // Display each character in the line quickly
+      for (let charIdx = 0; charIdx < line.length; charIdx++) {
+        displayText += line[charIdx];
+        setStreamingText(displayText);
+        // Ultra fast: 0.5ms per character
+        await new Promise(resolve => setTimeout(resolve, 0.5));
+      }
+      // Add newline after each line
+      displayText += '\n';
+      setStreamingText(displayText);
+      // Small pause between lines
+      await new Promise(resolve => setTimeout(resolve, 10));
     }
   };
 
@@ -178,14 +218,14 @@ const Chat = () => {
 
   return (
     <div className={`flex h-[calc(100vh-4rem)] relative transition-colors duration-300 ${darkMode ? 'bg-gray-900' : 'bg-gray-100'}`}>
-      {/* Background Effects */}
+      
       <div className={`absolute inset-0 bg-gradient-to-br transition-opacity duration-300 ${
         darkMode 
           ? 'from-indigo-900/20 to-purple-900/20 backdrop-blur-sm' 
           : 'from-blue-100/50 to-purple-100/50 backdrop-blur-sm'
       }`}></div>
       
-      {/* Theme Toggle */}
+       
       <button
         onClick={() => setDarkMode(!darkMode)}
         className={`absolute top-4 right-4 p-2 rounded-full transition-all duration-300 ${
@@ -197,7 +237,7 @@ const Chat = () => {
         <FontAwesomeIcon icon={darkMode ? faSun : faMoon} />
       </button>
       
-      {/* Sidebar */}
+       
       <div className={`w-64 p-4 overflow-y-auto relative z-10 border-r transition-colors duration-300 ${
         darkMode 
           ? 'bg-gray-800/80 border-gray-700/50' 
@@ -283,7 +323,7 @@ const Chat = () => {
         </div>
       </div>
 
-      {/* Main Chat Area */}
+       
       <div className="flex-1 flex flex-col relative z-10">
         <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
           {chatHistory.length === 0 ? (
@@ -305,71 +345,89 @@ const Chat = () => {
               </div>
             </div>
           ) : (
-            chatHistory.map((chat, index) => (
-              <div key={index} className="mb-6 animate-fade-in">
-                {/* User Message */}
-                <div className="flex items-start gap-3 mb-3">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                    darkMode ? 'bg-indigo-600/20' : 'bg-blue-600/20'
-                  }`}>
-                    <FontAwesomeIcon 
-                      icon={faUser} 
-                      className={darkMode ? 'text-indigo-400' : 'text-blue-400'} 
-                    />
+            <div className="space-y-4">
+              {chatHistory.map((chat, index) => (
+                <div key={index} className="mb-6 animate-fade-in">
+                  
+                  <div className="flex items-end gap-3 mb-4 justify-end">
+                    <div className={`p-4 rounded-3xl max-w-[70%] shadow-lg transform transition-all duration-300 hover:shadow-xl ${
+                      darkMode ? 'bg-indigo-600/80 text-white' : 'bg-blue-600/80 text-white'
+                    } backdrop-blur-sm animate-slide-in-right`}>
+                      <p className="text-sm sm:text-base leading-relaxed whitespace-pre-wrap">
+                        {chat.question}
+                      </p>
+                    </div>
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+                      darkMode ? 'bg-indigo-600/30' : 'bg-blue-600/30'
+                    }`}>
+                      <FontAwesomeIcon 
+                        icon={faUser} 
+                        className={darkMode ? 'text-indigo-400' : 'text-blue-400'} 
+                      />
+                    </div>
                   </div>
-                  <div className={`p-4 rounded-lg max-w-[80%] shadow-lg ${
-                    darkMode ? 'bg-gray-800/80' : 'bg-white/80'
-                  } backdrop-blur-sm`}>
-                    <p className={darkMode ? 'text-white' : 'text-gray-800'}>
-                      {chat.question}
-                    </p>
+                  
+                  
+                  <div className="flex items-start gap-3 mb-4 animate-slide-in-left">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+                      darkMode ? 'bg-purple-600/30' : 'bg-purple-500/30'
+                    }`}>
+                      <FontAwesomeIcon 
+                        icon={faRobot} 
+                        className={darkMode ? 'text-purple-400' : 'text-purple-500'} 
+                      />
+                    </div>
+                    <div className={`p-4 rounded-3xl max-w-[70%] shadow-lg transform transition-all duration-300 hover:shadow-xl ${
+                      darkMode ? 'bg-gray-800/90 text-gray-100' : 'bg-gray-200/90 text-gray-900'
+                    } backdrop-blur-sm`}>
+                      <FormattedMessage content={chat.answer} darkMode={darkMode} />
+                    </div>
                   </div>
                 </div>
-                
-                {/* AI Response */}
-                <div className="flex items-start gap-3">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                    darkMode ? 'bg-purple-600/20' : 'bg-purple-500/20'
+              ))}
+              
+            
+              {isStreaming && streamingText && (
+                <div className="flex items-start gap-3 mb-4 animate-fade-in">
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+                    darkMode ? 'bg-purple-600/30' : 'bg-purple-500/30'
                   }`}>
                     <FontAwesomeIcon 
                       icon={faRobot} 
                       className={darkMode ? 'text-purple-400' : 'text-purple-500'} 
                     />
                   </div>
-                  <div className={`p-4 rounded-lg max-w-[80%] shadow-lg ${
-                    darkMode ? 'bg-indigo-900/80' : 'bg-blue-100/80'
+                  <div className={`p-4 rounded-3xl max-w-[70%] shadow-lg ${
+                    darkMode ? 'bg-gray-800/90 text-gray-100' : 'bg-gray-200/90 text-gray-900'
                   } backdrop-blur-sm`}>
-                    <p className={darkMode ? 'text-white' : 'text-gray-800'}>
-                      {chat.answer}
-                    </p>
+                    <div className={`text-sm sm:text-base ${darkMode ? 'text-gray-100' : 'text-gray-900'}`}>
+                      <FormattedMessage content={streamingText} darkMode={darkMode} />
+                      <span className={`inline-block w-2 h-5 ml-1 rounded-sm animate-pulse ${
+                        darkMode ? 'bg-purple-400' : 'bg-purple-600'
+                      }`}></span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))
+              )}
+            </div>
           )}
-          {typing && (
-            <div className="flex items-start gap-3 mb-3 animate-fade-in">
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                darkMode ? 'bg-purple-600/20' : 'bg-purple-500/20'
+          {typing && !isStreaming && (
+            <div className="flex items-start gap-3 mb-4 animate-fade-in">
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+                darkMode ? 'bg-purple-600/30' : 'bg-purple-500/30'
               }`}>
                 <FontAwesomeIcon 
                   icon={faRobot} 
-                  className={darkMode ? 'text-purple-400' : 'text-purple-500'} 
+                  className={darkMode ? 'text-purple-400' : 'text-purple-500'}
                 />
               </div>
-              <div className={`p-4 rounded-lg max-w-[80%] shadow-lg ${
-                darkMode ? 'bg-indigo-900/80' : 'bg-blue-100/80'
-              } backdrop-blur-sm`}>
-                <div className="flex gap-2">
-                  <div className={`w-2 h-2 rounded-full ${
-                    darkMode ? 'bg-white/50' : 'bg-gray-800/50'
-                  } animate-bounce`}></div>
-                  <div className={`w-2 h-2 rounded-full ${
-                    darkMode ? 'bg-white/50' : 'bg-gray-800/50'
-                  } animate-bounce delay-100`}></div>
-                  <div className={`w-2 h-2 rounded-full ${
-                    darkMode ? 'bg-white/50' : 'bg-gray-800/50'
-                  } animate-bounce delay-200`}></div>
+              <div className={`p-4 rounded-3xl max-w-[70%] shadow-lg ${
+                darkMode ? 'bg-gray-800/90' : 'bg-gray-200/90'
+              } backdrop-blur-sm flex items-center justify-center`}>
+                <div className="relative w-6 h-6">
+                  <div className={`absolute inset-0 rounded-full border-2 border-transparent ${
+                    darkMode ? 'border-t-purple-400 border-r-purple-400' : 'border-t-purple-600 border-r-purple-600'
+                  } animate-spin`}></div>
                 </div>
               </div>
             </div>
@@ -377,13 +435,13 @@ const Chat = () => {
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Input Area */}
-        <div className={`p-4 border-t transition-colors duration-300 ${
+       
+        <div className={`px-3 py-2 border-t transition-colors duration-300 ${
           darkMode 
             ? 'border-gray-700/50 bg-gray-800/80' 
             : 'border-gray-200/50 bg-white/80'
         } backdrop-blur-sm`}>
-          <form onSubmit={handleSubmit} className="max-w-4xl mx-auto">
+          <form onSubmit={handleSubmit} className="max-w-4xl mx-auto px-1">
             <div className="flex gap-2">
               <input
                 ref={inputRef}
