@@ -15,39 +15,12 @@ dotenv.config({ path: join(__dirname, '.env') });
 const app = express();
 app.use(json());
 
-// Configure CORS for production
-const allowedOrigins = [
-  'http://localhost:3000',
-  'http://localhost:5173',
-  'https://ai-chatbot-zfid7khaq-pravin400-projects.vercel.app',
-  'https://ai-chatbot-six-sigma-90.vercel.app',
-  'https://ai-chatbot-alpha-two-82.vercel.app',
-  /\.vercel\.app$/, // Allow all Vercel deployments
-];
-
+// Simple CORS configuration - allow all origins
 app.use(cors({
-  origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
-    
-    // Check if origin is in allowed list or matches regex
-    const isAllowed = allowedOrigins.some(allowed => {
-      if (allowed instanceof RegExp) {
-        return allowed.test(origin);
-      }
-      return allowed === origin;
-    });
-    
-    if (isAllowed) {
-      callback(null, true);
-    } else {
-      console.warn(`CORS blocked request from origin: ${origin}`);
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
-  credentials: true,
-  methods: ['GET', 'POST', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type']
+  origin: '*',
+  methods: ['GET', 'POST', 'DELETE', 'OPTIONS', 'PUT'],
+  allowedHeaders: ['Content-Type'],
+  credentials: false
 }));
 
  
