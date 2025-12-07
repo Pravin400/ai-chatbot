@@ -14,7 +14,29 @@ dotenv.config({ path: join(__dirname, '.env') });
 
 const app = express();
 app.use(json());
-app.use(cors());
+
+// Configure CORS for production
+const allowedOrigins = [
+  'http://localhost:3000',
+  'http://localhost:5173',
+  'https://ai-chatbot-zfid7khaq-pravin400-projects.vercel.app',
+  'https://ai-chatbot-six-sigma-90.vercel.app',
+];
+
+app.use(cors({
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type']
+}));
 
  
 if (!process.env.MONGODB_URI) {
