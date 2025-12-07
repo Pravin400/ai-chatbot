@@ -38,15 +38,17 @@ export default async function handler(req, res) {
     await connectMongoDB();
     
     if (req.method === 'POST') {
+      console.log('📍 Starting new chat session');
       const sessionId = Date.now().toString(); 
       const chat = new Chat({ sessionId });
       await chat.save();
+      console.log(`✅ Session created: ${sessionId}`);
       return res.status(200).json({ sessionId, message: 'New chat session started' });
     }
     
-    res.status(405).json({ message: 'Method not allowed' });
+    return res.status(405).json({ message: 'Method not allowed' });
   } catch (error) {
-    console.error('Error:', error);
+    console.error('❌ Error in /start:', error.message);
     res.status(500).json({ message: 'Error', error: error.message });
   }
 }
