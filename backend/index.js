@@ -21,15 +21,27 @@ const allowedOrigins = [
   'http://localhost:5173',
   'https://ai-chatbot-zfid7khaq-pravin400-projects.vercel.app',
   'https://ai-chatbot-six-sigma-90.vercel.app',
+  'https://ai-chatbot-alpha-two-82.vercel.app',
+  /\.vercel\.app$/, // Allow all Vercel deployments
 ];
 
 app.use(cors({
   origin: function (origin, callback) {
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
-    if (allowedOrigins.indexOf(origin) !== -1) {
+    
+    // Check if origin is in allowed list or matches regex
+    const isAllowed = allowedOrigins.some(allowed => {
+      if (allowed instanceof RegExp) {
+        return allowed.test(origin);
+      }
+      return allowed === origin;
+    });
+    
+    if (isAllowed) {
       callback(null, true);
     } else {
+      console.warn(`CORS blocked request from origin: ${origin}`);
       callback(new Error('Not allowed by CORS'));
     }
   },
