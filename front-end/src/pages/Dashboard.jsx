@@ -3,7 +3,7 @@ import Chat from "../components/Chat";
 
 const Dashboard = () => {
   return (
-    <div className="h-screen bg-gray-900">
+    <div className="h-screen bg-gray-700">
       <Chat />
     </div>
   );

@@ -435,11 +435,10 @@ const Chat = () => {
           <div ref={messagesEndRef} />
         </div>
 
-       
-        <div className={`px-3 py-2 border-t transition-colors duration-300 ${
+        <div className={`px-3 py-2 transition-colors duration-300 ${
           darkMode 
-            ? 'border-gray-700/50 bg-gray-800/80' 
-            : 'border-gray-200/50 bg-white/80'
+            ? 'bg-gray-800/80' 
+            : 'bg-white/80'
         } backdrop-blur-sm`}>
           <form onSubmit={handleSubmit} className="max-w-4xl mx-auto px-1">
             <div className="flex gap-2">
