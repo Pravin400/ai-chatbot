@@ -3,6 +3,8 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPaperPlane, faTrash, faPlus, faRobot, faUser, faClock, faSpinner, faMoon, faSun } from '@fortawesome/free-solid-svg-icons';
 import FormattedMessage from './FormattedMessage';
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+
 const Chat = () => {
   const [message, setMessage] = useState('');
   const [chatHistory, setChatHistory] = useState([]);
@@ -58,7 +60,7 @@ const Chat = () => {
   const fetchAllChatSessions = async () => {
     try {
       setError(null);
-      const response = await fetch('http://localhost:3000/api/chat/sessions');
+      const response = await fetch(`${API_BASE_URL}/api/chat/sessions`);
       if (!response.ok) {
         throw new Error('Failed to fetch chat sessions');
       }
@@ -73,7 +75,7 @@ const Chat = () => {
   const startNewChat = async () => {
     try {
       setError(null);
-      const response = await fetch('http://localhost:3000/api/chat/start', {
+      const response = await fetch(`${API_BASE_URL}/api/chat/start`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -96,7 +98,7 @@ const Chat = () => {
   const loadChatSession = async (sessionId) => {
     try {
       setError(null);
-      const response = await fetch(`http://localhost:3000/api/chat/history/${sessionId}`);
+      const response = await fetch(`${API_BASE_URL}/api/chat/history/${sessionId}`);
       if (!response.ok) {
         throw new Error('Failed to load chat session');
       }
@@ -113,7 +115,7 @@ const Chat = () => {
   const deleteChatSession = async (sessionIdToDelete) => {
     try {
       setError(null);
-      const response = await fetch(`http://localhost:3000/api/chat/${sessionIdToDelete}`, {
+      const response = await fetch(`${API_BASE_URL}/api/chat/${sessionIdToDelete}`, {
         method: 'DELETE',
       });
       
@@ -150,7 +152,7 @@ const Chat = () => {
     
     try {
       setError(null);
-      const response = await fetch('http://localhost:3000/api/chat/message', {
+      const response = await fetch(`${API_BASE_URL}/api/chat/message`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
