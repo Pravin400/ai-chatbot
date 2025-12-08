@@ -1,8 +1,7 @@
 @import "tailwindcss/preflight";
 @tailwind utilities;
 
-/* Custom Scrollbar Styles */
-.custom-scrollbar {
+ .custom-scrollbar {
   scrollbar-width: none;
   -ms-overflow-style: none;
 }

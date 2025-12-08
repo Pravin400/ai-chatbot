@@ -15,8 +15,7 @@ dotenv.config({ path: join(__dirname, '.env') });
 const app = express();
 app.use(json());
 
-// Simple CORS configuration - allow all origins
-app.use(cors({
+ app.use(cors({
   origin: '*',
   methods: ['GET', 'POST', 'DELETE', 'OPTIONS', 'PUT'],
   allowedHeaders: ['Content-Type'],

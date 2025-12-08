@@ -5,22 +5,20 @@ import Chat from "../schemas.js";
 import model from "../utils.js";
 import dotenv from "dotenv";
 
-// Load environment variables
+
 dotenv.config();
 
 const app = express();
 app.use(json());
 
-// Simple CORS configuration - allow all origins
-app.use(cors({
+ app.use(cors({
   origin: '*',
   methods: ['GET', 'POST', 'DELETE', 'OPTIONS', 'PUT'],
   allowedHeaders: ['Content-Type'],
   credentials: false
 }));
 
-// MongoDB Connection (with caching to avoid reconnecting on every request)
-let mongoConnected = false;
+ let mongoConnected = false;
 
 const connectMongoDB = async () => {
   if (mongoConnected) return;
@@ -44,13 +42,11 @@ const connectMongoDB = async () => {
   }
 };
 
-// Health check endpoint - NO MongoDB needed
-app.get('/health', (req, res) => {
+ app.get('/health', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
-// API Routes
-app.get('/api/chat/sessions', async (req, res) => {
+ app.get('/api/chat/sessions', async (req, res) => {
   try {
     console.log('📍 GET /api/chat/sessions');
     await connectMongoDB();
@@ -162,8 +158,7 @@ app.delete('/api/chat/:sessionId', async (req, res) => {
   }
 });
 
-// Catch all - log unmatched requests
-app.use((req, res) => {
+ app.use((req, res) => {
   console.log(`⚠️ 404: ${req.method} ${req.path}`);
   res.status(404).json({ message: 'Route not found', path: req.path, method: req.method });
 });
